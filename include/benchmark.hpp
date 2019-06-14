@@ -76,7 +76,7 @@ class Benchmark {
 
 	virtual void run(size_t samples, size_t iterations) {
 		success = false;
-		durations.reserve(samples * iterations);
+		durations.reserve(samples);
 		this->samples = samples;
 		this->iterations = iterations;
 		this->threads = 0;
@@ -87,11 +87,12 @@ class Benchmark {
 				for (size_t i = 0; i < iterations; i++) {
 					int64_t d = bench();
 					if (d >= 0) {
-						durations.push_back(d / 1000);
+						duration += d / 1000;
 					} else {
 						throw std::runtime_error("negative duration");
 					}
 				}
+				durations.push_back(duration / iterations);
 			}
 			success = true;
 		} catch (std::exception &e) {
@@ -135,7 +136,7 @@ class BenchmarkStdoutReporter : public BenchmarkReporter {
 		       b->name.c_str(), b->threads, b->samples, b->iterations);
 		if (b->success && !b->durations.empty()) {
 			BenchmarkStat stat = calc_stat(b->durations);
-			std::string div = std::to_string(-stat.div_min) + "/" + std::to_string(stat.div_max);
+			std::string div = (stat.div_min == 0 ? "" : "-") + std::to_string(stat.div_min) + "/" + std::to_string(stat.div_max);
 			printf(" %14lu | %14lu | %14s | \n", stat.p95,
 			       stat.p99, div.c_str());
 		} else if (b->err.empty()) {
