@@ -137,12 +137,15 @@ class BenchmarkStdoutReporter : public BenchmarkReporter {
 		if (b->success && !b->durations.empty()) {
 			BenchmarkStat stat = calc_stat(b->durations);
 			std::string div = (stat.div_min == 0 ? "" : "-") + std::to_string(stat.div_min) + "/" + std::to_string(stat.div_max);
-			printf(" %14lu | %14lu | %14s | \n", stat.p95,
-			       stat.p99, div.c_str());
+			printf(" %14lu | %14lu | %14s | %14lu\n", stat.p95,
+			       stat.p99, div.c_str(), stat.min);
 		} else if (b->err.empty()) {
 			printf(" SKIP\n");
 		} else {
 			printf(" FAIL: %s\n", b->err.c_str());
+		}
+		for (auto r: b->durations) {
+			std::cout << r << std::endl;
 		}
 	}
 };
