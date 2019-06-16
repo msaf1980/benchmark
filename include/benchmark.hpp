@@ -35,8 +35,8 @@ struct BenchmarkStat {
 	int64_t p90;
 	int64_t p95;
 	int64_t p99;
-	int64_t div_min;
-	int64_t div_max;
+	float   div_min;
+	float   div_max;
 };
 
 int64_t percentile(std::vector<int64_t>::const_iterator b,
@@ -65,8 +65,8 @@ BenchmarkStat calc_stat(std::vector<int64_t> &r) {
 	/* trunc high deviated result */
 	while (last > 20 && last > r.size() - 5) {
 		stat.p95 = percentile(r.cbegin(), std::next(r.cbegin(), last + 1), 95);
-		stat.div_max = stat.max - stat.p95;
-		if (stat.div_max > stat.p95)
+		stat.div_max = (stat.max - stat.p95) / (stat.p95 / 100.0f);
+		if (stat.div_max > 300.0f)
 			last--;
 		else
 			break;
@@ -78,8 +78,8 @@ BenchmarkStat calc_stat(std::vector<int64_t> &r) {
 	stat.p90 = percentile(r.cbegin(), end_it, 90);
 	stat.p95 = percentile(r.cbegin(), end_it, 95);
 	stat.p99 = percentile(r.cbegin(), end_it, 99);
-	stat.div_min = stat.p95 - stat.min;
-	stat.div_max = stat.max - stat.p95;
+	stat.div_min = (stat.p95 - stat.min) / (stat.p95 / 100.0f);
+	stat.div_max = (stat.max - stat.p95) / (stat.p95 / 100.0f);
 	return stat;
 }
 
@@ -144,11 +144,13 @@ class Benchmark {
 class BenchmarkStdoutReporter : public BenchmarkReporter {
   public:
 	BenchmarkStdoutReporter() {
-		std::string s_delim(135, '_');
+		std::string s_delim(132, '-');
 		printf("%s\n", s_delim.c_str());
-		printf("%10s | %10s | %8s | %10s | %10s | %14s | %14s | %14s | %20s |\n",
-		       "Group", "Benchmark", "Threads", "Samples", "Iterations",
-		       "us/Iter P90" ,"P95", "P99", "P95 Div Min/Max");
+		printf(
+		    "%10s | %10s | %8s | %10s | %10s | %14s | %14s | %14s | %15s |\n",
+		    "Group", "Benchmark", "Threads", "Samples", "Iterations",
+		    "ns/Iter P90", "P95", "P99", "P95 Div% Min/Max");
+		printf("%s\n", s_delim.c_str());
 	}
 
 	virtual void report(Benchmark *b) {
@@ -156,17 +158,15 @@ class BenchmarkStdoutReporter : public BenchmarkReporter {
 		       b->name.c_str(), b->threads, b->samples, b->iterations);
 		if (b->success && !b->durations.empty()) {
 			BenchmarkStat stat = calc_stat(b->durations);
-/*
-			std::cout << std::endl;
-			for (auto r : b->durations) {
-				std::cout << r << std::endl;
-			}
-*/
-			std::string div = (stat.div_min == 0 ? "" : "-") +
-			                  std::to_string(stat.div_min) + "/" +
-			                  std::to_string(stat.div_max);
-			printf(" %14lu | %14lu | %14lu | %20s |\n", stat.p90,
-			       stat.p95, stat.p99, div.c_str());
+			/*
+			            std::cout << std::endl;
+			            for (auto r : b->durations) {
+			                std::cout << r << std::endl;
+			            }
+			*/
+			printf(" %14lu | %14lu | %14lu | ", stat.p90, stat.p95,
+			       stat.p99);
+			printf("%s%.2f/%-10.2f |\n", (stat.div_min == 0 ? "" : "-"), stat.div_min, stat.div_max);
 		} else if (b->err.empty()) {
 			printf(" SKIP\n");
 		} else {
