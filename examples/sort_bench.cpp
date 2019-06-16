@@ -2,7 +2,7 @@
  * Example with base class Becnhmark - parameters can be passed to test as class members
  * */
 
-#include <benchmark.hpp>
+#include <benchmark/benchmark.hpp>
 
 #include <stdexcept>
 
