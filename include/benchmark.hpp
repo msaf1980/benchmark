@@ -102,6 +102,7 @@ class Benchmark {
 	std::string          err;
 	std::vector<int64_t> durations;
 
+	long double skip_diviation = 100.0l;
 	BenchmarkReporter *r;
 
 	void report() {
@@ -112,6 +113,8 @@ class Benchmark {
 	virtual void    prepare(){};
 	virtual int64_t bench() = 0;
 	virtual void    cleanup(){};
+
+	void set_skip_diviation(long double skip) { skip_diviation = skip; }
 
 	virtual void run(size_t samples, size_t iterations) {
 		success = false;
@@ -156,12 +159,12 @@ class TBenchmark : public Benchmark {
 class BenchmarkStdoutReporter : public BenchmarkReporter {
   public:
 	BenchmarkStdoutReporter() {
-		std::string s_delim(165, '-');
+		std::string s_delim(159, '-');
 		printf("%s\n", s_delim.c_str());
 		printf(
-		    "%26s | %20s | %8s | %10s | %10s | %16s | %16s | %16s | %17s |\n",
+		    "%26s | %20s | %8s | %10s | %10s | %14s | %14s | %14s | %17s |\n",
 		    "Group", "Benchmark", "Threads", "Samples", "Iterations",
-		    "ns/Iter P90", "P95", "P99", "P95 Div% Min/Max");
+		    "us/Iter P90", "P95", "P99", "P95 Div% Min/Max");
 		printf("%s\n", s_delim.c_str());
 	}
 
@@ -171,9 +174,9 @@ class BenchmarkStdoutReporter : public BenchmarkReporter {
 		if (b->success && !b->durations.empty()) {
 			BenchmarkStat stat = calc_stat(b->durations);
 			char          buf[18];
-			sprintf(buf, "%3.3Lf/%-6.3Lf", stat.pcnt_div_min, stat.pcnt_div_max);
-			printf(" %16lu | %16lu | %16lu | %17s |\n", stat.p90, stat.p95,
-			       stat.p99, buf);
+			sprintf(buf, "%3.2Lf/%-6.2Lf", stat.pcnt_div_min, stat.pcnt_div_max);
+			printf(" %14.1LF | %14.1Lf | %14.1Lf | %17s |\n", stat.p90 / 1000.0l, stat.p95 / 1000.0l,
+			       stat.p99 / 1000.0l, buf);
 		} else if (b->err.empty()) {
 			printf(" SKIP\n");
 		} else {
