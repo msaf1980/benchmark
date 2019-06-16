@@ -35,8 +35,8 @@ struct BenchmarkStat {
 	int64_t p90;
 	int64_t p95;
 	int64_t p99;
-	float   div_min;
-	float   div_max;
+	long double   pcnt_div_min;
+	long double   pcnt_div_max;
 };
 
 int64_t percentile(std::vector<int64_t>::const_iterator b,
@@ -55,7 +55,8 @@ int64_t percentile(std::vector<int64_t>::const_iterator b,
 		return 0;
 }
 
-BenchmarkStat calc_stat(std::vector<int64_t> &r) {
+BenchmarkStat calc_stat(std::vector<int64_t> &r,
+                        long double                 skip_diviation = 300.0l) {
 	BenchmarkStat stat = {0, 0, 0, 0, 0, 0, 0, 0};
 	std::sort(r.begin(), r.end());
 	stat.max = r[r.size() - 1];
@@ -65,8 +66,8 @@ BenchmarkStat calc_stat(std::vector<int64_t> &r) {
 	/* trunc high deviated result */
 	while (last > 20 && last > r.size() - 5) {
 		stat.p95 = percentile(r.cbegin(), std::next(r.cbegin(), last + 1), 95);
-		stat.div_max = (stat.max - stat.p95) / (stat.p95 / 100.0f);
-		if (stat.div_max > 300.0f)
+		stat.pcnt_div_max = (stat.max - stat.p95) / (stat.p95 / 100.0l);
+		if (stat.pcnt_div_max > skip_diviation)
 			last--;
 		else
 			break;
@@ -78,8 +79,8 @@ BenchmarkStat calc_stat(std::vector<int64_t> &r) {
 	stat.p90 = percentile(r.cbegin(), end_it, 90);
 	stat.p95 = percentile(r.cbegin(), end_it, 95);
 	stat.p99 = percentile(r.cbegin(), end_it, 99);
-	stat.div_min = (stat.p95 - stat.min) / (stat.p95 / 100.0f);
-	stat.div_max = (stat.max - stat.p95) / (stat.p95 / 100.0f);
+	stat.pcnt_div_min = (stat.min - stat.p95) / (stat.p95 / 100.0l);
+	stat.pcnt_div_max = (stat.max - stat.p95) / (stat.p95 / 100.0l);
 	return stat;
 }
 
@@ -92,9 +93,30 @@ class Benchmark {
   public:
 	virtual ~Benchmark(){};
 
+	std::string          group;
+	std::string          name;
+	size_t               threads;
+	size_t               samples;
+	size_t               iterations;
+	bool                 success;
+	std::string          err;
+	std::vector<int64_t> durations;
+
+	BenchmarkReporter *r;
+
+	void report() {
+		if (r != NULL)
+			r->report(this);
+	}
+
+	virtual void    prepare(){};
+	virtual int64_t bench() = 0;
+	virtual void    cleanup(){};
+
 	virtual void run(size_t samples, size_t iterations) {
 		success = false;
 		durations.reserve(samples);
+		durations.clear();
 		this->samples = samples;
 		this->iterations = iterations;
 		this->threads = 0;
@@ -119,54 +141,39 @@ class Benchmark {
 		cleanup();
 		report();
 	}
+};
 
-	virtual void    prepare(){};
-	virtual int64_t bench() = 0;
-	virtual void    cleanup(){};
+template <typename T>
+class TBenchmark : public Benchmark {
+  public:
+	virtual ~TBenchmark(){};
 
-	void report() {
-		if (r != NULL)
-			r->report(this);
-	}
+	void set_param(T *param) { this->param = param; }
 
-	std::string          group;
-	std::string          name;
-	size_t               threads;
-	size_t               samples;
-	size_t               iterations;
-	bool                 success;
-	std::string          err;
-	std::vector<int64_t> durations;
-
-	BenchmarkReporter *r;
+	T *param = NULL;
 };
 
 class BenchmarkStdoutReporter : public BenchmarkReporter {
   public:
 	BenchmarkStdoutReporter() {
-		std::string s_delim(132, '-');
+		std::string s_delim(165, '-');
 		printf("%s\n", s_delim.c_str());
 		printf(
-		    "%10s | %10s | %8s | %10s | %10s | %14s | %14s | %14s | %15s |\n",
+		    "%26s | %20s | %8s | %10s | %10s | %16s | %16s | %16s | %17s |\n",
 		    "Group", "Benchmark", "Threads", "Samples", "Iterations",
 		    "ns/Iter P90", "P95", "P99", "P95 Div% Min/Max");
 		printf("%s\n", s_delim.c_str());
 	}
 
 	virtual void report(Benchmark *b) {
-		printf("%10s | %10s | %8lu | %10lu | %10lu |", b->group.c_str(),
+		printf("%26s | %20s | %8lu | %10lu | %10lu |", b->group.c_str(),
 		       b->name.c_str(), b->threads, b->samples, b->iterations);
 		if (b->success && !b->durations.empty()) {
 			BenchmarkStat stat = calc_stat(b->durations);
-			/*
-			            std::cout << std::endl;
-			            for (auto r : b->durations) {
-			                std::cout << r << std::endl;
-			            }
-			*/
-			printf(" %14lu | %14lu | %14lu | ", stat.p90, stat.p95,
-			       stat.p99);
-			printf("%s%.2f/%-10.2f |\n", (stat.div_min == 0 ? "" : "-"), stat.div_min, stat.div_max);
+			char          buf[18];
+			sprintf(buf, "%3.3Lf/%-6.3Lf", stat.pcnt_div_min, stat.pcnt_div_max);
+			printf(" %16lu | %16lu | %16lu | %17s |\n", stat.p90, stat.p95,
+			       stat.p99, buf);
 		} else if (b->err.empty()) {
 			printf(" SKIP\n");
 		} else {

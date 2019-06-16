@@ -1,3 +1,7 @@
+/*
+ * Example with templated class TBecnhmark - pass parameters to test
+ * */
+
 #include <benchmark.hpp>
 
 #include <algorithm>
@@ -5,14 +9,20 @@
 using namespace std;
 using namespace benchmark;
 
-class StdSortBench : public Benchmark {
+struct BenchParam {
+	size_t data_size;
+};
+
+class StdSortBench : public TBenchmark<BenchParam> {
   public:
 	BENCH_CONSTRUCT(StdSortBench);
 
 	int64_t bench() {
 		// test and verify dataset
 		vector<int> data = {1, 5, 2, 8, 45, 13, -1, 1};
-		vector<int> verify = {-1, 1, 1, 2, 5, 8, 13, 45};
+		data.resize(param->data_size);
+		vector<int> verify = data;
+		sort(std::begin(verify), std::end(verify));
 
 		int64_t start = Now();
 
@@ -26,10 +36,12 @@ class StdSortBench : public Benchmark {
 	}
 };
 
-int main(int argc, char *argv[]) {
+int main() {
 	BenchmarkStdoutReporter r;
 
-	StdSortBench b("Sort", "std::sort", &r);
+	StdSortBench b("Sort (10)", "std::sort", &r);
+	BenchParam b_param = { 10 };
+	b.set_param(&b_param);
 	b.run(1000, 10);
 	return 0;
 }

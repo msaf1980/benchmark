@@ -1,3 +1,7 @@
+/*
+ * Example with base class Becnhmark - no parameters pass to test
+ * */
+
 #include <benchmark.hpp>
 
 #include <algorithm>
@@ -26,10 +30,10 @@ class StdSortBench : public Benchmark {
 	}
 };
 
-int main(int argc, char *argv[]) {
+int main() {
 	BenchmarkStdoutReporter r;
 
 	StdSortBench b("Sort", "std::sort", &r);
-	b.run(10, 10);
+	b.run(1000, 10);
 	return 0;
 }
