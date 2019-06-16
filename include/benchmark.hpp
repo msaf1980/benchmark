@@ -146,16 +146,6 @@ class Benchmark {
 	}
 };
 
-template <typename T>
-class TBenchmark : public Benchmark {
-  public:
-	virtual ~TBenchmark(){};
-
-	void set_param(T *param) { this->param = param; }
-
-	T *param = NULL;
-};
-
 class BenchmarkStdoutReporter : public BenchmarkReporter {
   public:
 	BenchmarkStdoutReporter() {
