@@ -158,6 +158,11 @@ class BenchmarkStdoutReporter : public BenchmarkReporter {
 		printf("%s\n", s_delim.c_str());
 	}
 
+	~BenchmarkStdoutReporter() {
+		std::string s_delim(159, '-');
+		printf("%s\n", s_delim.c_str());
+	}
+
 	virtual void report(Benchmark *b) {
 		printf("%26s | %20s | %8lu | %10lu | %10lu |", b->group.c_str(),
 		       b->name.c_str(), b->threads, b->samples, b->iterations);
