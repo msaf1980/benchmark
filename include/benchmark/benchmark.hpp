@@ -3,6 +3,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <algorithm>
 #include <iostream>
@@ -149,22 +150,25 @@ class Benchmark {
 class BenchmarkStdoutReporter : public BenchmarkReporter {
   public:
 	BenchmarkStdoutReporter() {
-		std::string s_delim(168, '-');
-		printf("%s\n", s_delim.c_str());
-		printf(
-		    "%30s | %25s | %8s | %10s | %10s | %14s | %14s | %14s | %17s |\n",
+		char head[256];
+		snprintf(head, sizeof(head) - 1,
+		    "%30s | %20s | %8s | %10s | %10s | %14s | %14s | %14s | %17s |\n",
 		    "Group", "Benchmark", "Threads", "Samples", "Iterations",
 		    "us/Iter P90", "P95", "P99", "P95 Div% Min/Max");
+		width = strlen(head) - 1;
+		std::string s_delim(width, '-');
+		printf("%s\n", s_delim.c_str());
+		printf("%s", head);
 		printf("%s\n", s_delim.c_str());
 	}
 
 	~BenchmarkStdoutReporter() {
-		std::string s_delim(159, '-');
+		std::string s_delim(width, '-');
 		printf("%s\n", s_delim.c_str());
 	}
 
 	virtual void report(Benchmark *b) {
-		printf("%30s | %25s | %8lu | %10lu | %10lu |", b->group.c_str(),
+		printf("%30s | %20s | %8lu | %10lu | %10lu |", b->group.c_str(),
 		       b->name.c_str(), b->threads, b->samples, b->iterations);
 		if (b->success && !b->durations.empty()) {
 			BenchmarkStat stat = calc_stat(b->durations);
@@ -178,6 +182,8 @@ class BenchmarkStdoutReporter : public BenchmarkReporter {
 			printf(" FAIL: %s\n", b->err.c_str());
 		}
 	}
+  private:
+	size_t width;
 };
 } // namespace benchmark
 #endif /* _BENCHMARK_HPP_ */
