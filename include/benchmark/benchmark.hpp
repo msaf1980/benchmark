@@ -136,7 +136,7 @@ class Benchmark {
 						throw std::runtime_error("negative duration");
 					}
 				}
-				durations.push_back(duration / iterations);
+				durations.push_back(duration);
 			}
 			success = true;
 		} catch (std::exception &e) {
@@ -152,9 +152,9 @@ class BenchmarkStdoutReporter : public BenchmarkReporter {
 	BenchmarkStdoutReporter() {
 		char head[256];
 		snprintf(head, sizeof(head) - 1,
-		    "%30s | %20s | %8s | %10s | %10s | %14s | %14s | %14s | %17s |\n",
+		    "%30s | %20s | %8s | %10s | %10s | %18s | %18s | %18s | %17s |\n",
 		    "Group", "Benchmark", "Threads", "Samples", "Iterations",
-		    "us/Iter P90", "P95", "P99", "P95 Div% Min/Max");
+		    "ns/Iter P90", "P95", "P99", "P95 Div% Min/Max");
 		width = strlen(head) - 1;
 		std::string s_delim(width, '-');
 		printf("%s\n", s_delim.c_str());
@@ -174,8 +174,8 @@ class BenchmarkStdoutReporter : public BenchmarkReporter {
 			BenchmarkStat stat = calc_stat(b->durations);
 			char          buf[18];
 			sprintf(buf, "%3.2Lf/%-6.2Lf", stat.pcnt_div_min, stat.pcnt_div_max);
-			printf(" %14.1LF | %14.1Lf | %14.1Lf | %17s |\n", stat.p90 / 1000.0l, stat.p95 / 1000.0l,
-			       stat.p99 / 1000.0l, buf);
+			printf(" %18lu | %18lu | %18lu | %17s |\n", stat.p90, stat.p95,
+			       stat.p99, buf);
 		} else if (b->err.empty()) {
 			printf(" SKIP\n");
 		} else {
