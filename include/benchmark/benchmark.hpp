@@ -112,6 +112,7 @@ class Benchmark {
 	}
 
 	virtual void    prepare(){};
+	virtual void    prepare_iter(){};
 	virtual int64_t bench() = 0;
 	virtual void    cleanup(){};
 
@@ -128,6 +129,7 @@ class Benchmark {
 			prepare();
 			for (size_t s = 0; s < samples; s++) {
 				int64_t duration = 0;
+				prepare_iter();
 				for (size_t i = 0; i < iterations; i++) {
 					int64_t d = bench();
 					if (d >= 0) {
